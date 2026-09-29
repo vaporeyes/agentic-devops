@@ -1,0 +1,40 @@
+# ABOUTME: Identity matrix separating builder, runtime agent, model server, and human approver.
+# ABOUTME: Every permission must trace to an outcome; concrete RBAC is derived from this file.
+identities:
+  claude-code-builder:
+    lifetime: phase
+    repository: write-approved-paths
+    kubernetes: read-plus-approved-bootstrap
+    tools_enforced_by: .claude/settings.json
+    audit: .claude/hooks/audit.sh (agent_identity, build_phase)
+    completion: phase-test-evidence-and-commit
+
+  platform-agent:
+    lifetime: service
+    service_account: kagent/<agent-name>
+    repository: none
+    kubernetes: namespace-read
+    network: egress-to-agentgateway-only
+    tools:
+      - read-only MCP tools named in the Agent spec
+    completion: structured-result-and-trace
+
+  model-server:
+    lifetime: service
+    repository: none
+    kubernetes: none
+    network: ingress-from-agentgateway-and-observability-only
+
+  guardrail-adapter:
+    lifetime: service
+    repository: none
+    kubernetes: none
+    network: ingress-from-agentgateway; egress-to-scanner
+
+  human-approver:
+    lifetime: per-decision
+    approves:
+      - phase transitions (evidence file, diff, test output)
+      - policy promotion to Enforce (audit results, fixtures, rollback plan)
+      - policy exceptions (owner, ticket, scope, expiry)
+      - any agent write action (structured proposal, rollback)

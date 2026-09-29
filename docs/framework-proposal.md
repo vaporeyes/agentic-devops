@@ -1,0 +1,149 @@
+# Framework Proposal: Governed Agentic Platform
+
+Derived from [book-analysis.md](./book-analysis.md). This is a proposal for
+review; open decisions are listed at the end.
+
+## Goal
+
+A reusable, GitOps-driven framework that deploys an AI-native internal
+developer platform in phases, where each phase has a written contract, an
+executable outcome gate, and a machine-generated evidence record. The builder
+agent (Claude Code) executes phases under a governed harness; humans approve
+every phase transition.
+
+End-to-end outcome (from the book): a developer requests a governed agent
+service, the request produces version-controlled artifacts, Argo CD reconciles
+them, admission evaluates them, the workload reaches models and tools only
+through controlled paths, and the first trace arrives with no hand-edited
+cluster state.
+
+## Design Rules
+
+- Keep the book's operating model; treat its product list as defaults behind
+  stable interfaces (gateway URL, model alias, OTLP endpoint, secret store).
+- Close every known reference-repo gap inside the phase that owns it, with a
+  test that fails until the gap is closed.
+- Production posture from day one in every profile. Profiles (`local`,
+  `eks`) differ only in which infrastructure provides a capability; no lab
+  shortcuts exist, and a static test enforces that.
+- Nothing is accepted on controller health alone; every gate hits the
+  user-facing surface.
+
+## Repository Layout
+
+```text
+agentic-platform/
+  CLAUDE.md                     builder rules: phases, stop, GitOps-only
+  components.yaml               pinned inventory (chart, app, digest, owner)
+  .claude/
+    settings.json               prompting defaultMode; allow/ask/deny
+    hooks/audit.sh              JSONL audit with agent_identity and phase
+  spec/
+    platform.md                 global rules and outcome contract
+    phases/phase-N-*.md         goal, inputs, outputs, tests, decisions, stop
+  docs/
+    platform-outcomes.md        testable outcome statements
+    agent-identities.yaml       builder, runtime agent, model server, approver
+    trust-boundaries.md         misuse case and controls per boundary
+    telemetry-contract.yaml     required resource attributes, sensitive fields
+    runbooks/                   symptom, evidence, safe actions, stop, rollback
+  bootstrap/                    the single direct-apply exception (Argo CD)
+  platform/
+    1-foundation/<component>/application.yaml
+    2-ai-plane/<component>/application.yaml
+    3-self-service/<component>/application.yaml
+    profiles/{local,eks}/       infrastructure-provider overlays only
+  templates/agent-service/      Backstage template and skeleton
+  adapters/guardrail-webhook/   agentgateway guardrail API to scanner
+  tests/
+    conftest.py                 KUBECONFIG_FILE and EXPECTED_CONTEXT guard
+    static/                     rendered-manifest and contract tests
+    phase_N/                    live outcome gates
+    fixtures/                   paired deny/admit and injection fixtures
+  evidence/phase-N.yaml         generated: git SHA, digests, trace IDs
+  scripts/                      check_components, render_all, wait_for
+```
+
+## Phase Plan
+
+Each phase ends with passing tests, an evidence file, a commit, a checkpoint
+tag, a completion promise, and a stop.
+
+| Phase | Scope                                                            | Gaps closed in this phase                          |
+| ----- | ---------------------------------------------------------------- | -------------------------------------------------- |
+| 0     | Preflight, inventory validator, harness, conftest guard          | Dirty-tree and Git revision check                  |
+| 1     | Argo CD bootstrap, App-of-Apps, certs, secrets, storage, IAM     | Kyverno baseline in Audit; no-lab-shortcuts test   |
+| 2     | Metrics, logs, traces, Collector, Grafana sources                | Log collection pipeline; `request.id` promotion    |
+| 3     | Backstage, catalog, Argo CD proxy, delivery extensions           | External TechDocs build; scoped portal accounts    |
+| 4     | Gateway API, kgateway, agentgateway, runtime Gateway, mTLS       | Runtime Gateway; internal LB; access-log policy    |
+| 5     | Model serving (KServe + vLLM) behind the gateway                 | PredictorReady health rule; runtime contract tests |
+| 6     | kagent, ModelConfig via gateway, MCP route, guardrail            | MCP wiring; guardrail adapter; `/agents` route     |
+| 7     | Golden path: template, ApplicationSet, AppProject, form-to-trace | A2A invocation body pinned; contract marker file   |
+| 8     | Enforce one policy, attribution queries, production gap review   | ValidatingPolicy for new rules; attribution tests  |
+
+Note: the book serves the model (its Chapter 8) after declaring agents
+(Chapter 7). This proposal serves the model first so agent gates can run a
+real inference instead of deferring it.
+
+## Cross-Cutting Contracts
+
+- **Evidence record** per phase, generated by the test run, containing Git
+  SHA, image digests, key conditions, and trace or request IDs. No payloads.
+- **Audit event schema** (`timestamp`, `event_type`, `actor_identity`,
+  `agent_identity`, `tool_or_model`, `outcome`, `request_id`, `trace_id`,
+  `git_revision`, `payload_hash`) validated by a shared checker used for the
+  builder hook, gateway logs, and agent events.
+- **Paired proof helper** that asserts a deny for a named rule and an admit
+  for the known-good fixture; reused by Kyverno, mTLS, and guardrail tests.
+- **Static render suite** run in CI on every change: placeholder scan, image
+  digest and registry check, unknown Helm value detection against pinned
+  chart schemas, server-side dry-run against installed CRDs where available.
+- **Capability registry** (model aliases, approved MCP tools, data class,
+  approval requirement) consumed by the Backstage template and policies.
+
+## Suggested Build Order for the Framework Itself
+
+1. Scaffold the repo skeleton, harness, conftest guard, component validator,
+   static render suite, and Phase 0 test. No cluster needed.
+2. Write all phase specs and the outcome, identity, trust-boundary, and
+   telemetry documents.
+3. Implement phases 1 to 3 against a disposable cluster, one at a time.
+4. Build the guardrail adapter as a small standalone service with its own
+   tests before Phase 6.
+5. Implement phases 4 to 8.
+
+## Decisions (2026-09-27)
+
+1. **Target environment:** local kind cluster for development and CI, with
+   EKS as the reference profile (`profiles: [local, eks]` per component).
+2. **Starting point:** clean framework; the Packt companion repository
+   (MIT) is a reference and the source of pinned versions.
+3. **Stack:** the book's components, except LLM Guard (archived upstream).
+   A maintained scanner is selected and pinned in Phase 6 behind a
+   scanner-agnostic guardrail webhook adapter.
+4. **Phase 0 scaffold:** complete (harness, inventory, validator, evidence
+   recorder, static tests, phase gate, phase specs, design contracts).
+
+## Decisions (2026-09-29)
+
+1. **Scope:** production profile from day one; identical security posture
+   in every profile.
+2. **Local model backend:** our own multi-arch vLLM CPU image (arm64 and
+   amd64), signed and digest-pinned.
+
+## Decisions (2026-09-29, continued)
+
+1. **Pilot:** GitOps-aware alert enrichment
+   ([pilot-use-case.md](./pilot-use-case.md)).
+2. **SSO:** the existing corporate identity provider over OIDC.
+3. **Git source:** the organization's existing GitHub or GitLab; the
+   in-cluster Gitea is dropped.
+4. **Registry and signing:** Amazon ECR with cosign signatures from an AWS
+   KMS key, verified by Kyverno at admission.
+
+## Still Open
+
+1. **Which identity provider:** Okta, Entra ID, or Google Workspace.
+2. **Which Git provider:** GitHub or GitLab (selects the Backstage publish
+   action and the ApplicationSet SCM generator).
+3. **`local` OpenBao unseal mechanism:** decided in Phase 1.

@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "defaultMode": "default",
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(kubectl get:*)",
+      "Bash(kubectl describe:*)",
+      "Bash(kubectl logs:*)",
+      "Bash(kubectl explain:*)",
+      "Bash(kubectl api-resources:*)",
+      "Bash(kubectl version:*)",
+      "Bash(kubectl config current-context:*)",
+      "Bash(kubectl diff:*)",
+      "Bash(argocd app get:*)",
+      "Bash(argocd app list:*)",
+      "Bash(argocd app diff:*)",
+      "Bash(helm template:*)",
+      "Bash(helm show:*)",
+      "Bash(helm lint:*)",
+      "Bash(kind get:*)",
+      "Bash(uv run --group test pytest:*)",
+      "Bash(uv run --group test python scripts/check_components.py:*)"
+    ],
+    "ask": [
+      "Bash(kubectl apply:*)",
+      "Bash(kubectl create:*)",
+      "Bash(kubectl delete:*)",
+      "Bash(kubectl patch:*)",
+      "Bash(kubectl replace:*)",
+      "Bash(kubectl rollout:*)",
+      "Bash(kubectl run:*)",
+      "Bash(helm install:*)",
+      "Bash(helm upgrade:*)",
+      "Bash(helm uninstall:*)",
+      "Bash(argocd app sync:*)",
+      "Bash(argocd app delete:*)",
+      "Bash(kind create:*)",
+      "Bash(kind delete:*)",
+      "Bash(git commit:*)",
+      "Bash(git tag:*)",
+      "Bash(git push:*)"
+    ],
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/credentials*)",
+      "Read(**/*.kubeconfig)",
+      "Edit(.claude/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/audit.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/audit.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,53 @@
+# ABOUTME: Telemetry contract: required resource attributes, audit event fields, sensitive fields.
+# ABOUTME: Producers must comply; phase tests assert the rendered pipeline and emitted records.
+telemetry_contract:
+  required_resource_attributes:
+    - service.name
+    - service.namespace
+    - service.version
+    - deployment.environment.name
+    - platform.owner
+
+  ingestion:
+    protocol: otlp
+    endpoint_http: opentelemetry-collector.observability.svc:4318
+    endpoint_grpc: opentelemetry-collector.observability.svc:4317
+    request_id_header: X-Request-ID
+    request_id_span_attribute: request.id
+
+  audit_event_fields:
+    - timestamp
+    - event_type
+    - actor_identity
+    - agent_identity
+    - tool_or_model
+    - outcome
+    - request_id
+    - trace_id
+    - git_revision
+    - payload_hash
+
+  metric_label_allowlist:
+    - service
+    - namespace
+    - model_alias
+    - route
+    - outcome
+    - owner
+
+  never_labels:
+    - trace_id
+    - request_id
+    - session_id
+    - prompt
+    - url
+
+  sensitive_fields:
+    - prompt.content
+    - completion.content
+    - tool.arguments.credentials
+    - authorization
+
+  ownership:
+    pipeline: platform-observability
+    application_attributes: workload-owner

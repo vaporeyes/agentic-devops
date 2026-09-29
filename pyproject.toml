@@ -1,0 +1,32 @@
+# ABOUTME: Project metadata and tooling configuration for the agentic platform framework.
+# ABOUTME: Defines the test and lint dependency groups and pytest collection scope.
+[project]
+name = "agentic-platform"
+version = "0.1.0"
+description = "GitOps-driven, phase-gated framework for a governed agentic platform"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+test = [
+    "pytest>=8.0",
+    "pyyaml>=6.0",
+]
+dev = [
+    "ruff>=0.6",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["scripts", "tests"]
+markers = [
+    "cluster: needs KUBECONFIG_FILE and EXPECTED_CONTEXT pointing at a live cluster",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# Project convention is datetime.now(timezone.utc), not the datetime.UTC alias.
+ignore = ["UP017"]

@@ -1,0 +1,20 @@
+# Source book (copyrighted EPUB); reference only, never committed.
+9781808344190/
+
+# Builder audit log; shipped to Loki, not versioned.
+.claude/audit/
+
+# Local Claude settings (may carry an unprompted mode; never tracked).
+.claude/settings.local.json
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Kubeconfigs and secrets
+*.kubeconfig
+.env
+.DS_Store
