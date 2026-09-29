@@ -1,0 +1,7 @@
+phase: 0
+recorded_at: '2026-09-29T11:45:15.219030+00:00'
+git_revision: 4b97cbe5fc886e04fad03e8e62fbbb4fbe6820e8
+kube_context: kind-agentic
+server_version: v1.35.8
+components_sha256: c734961a925d682d56c06b9a78ed35841824815c4e2c8447ada5965e13922e70
+gate_result: passed
