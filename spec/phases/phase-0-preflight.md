@@ -37,18 +37,22 @@ rules, harness permissions, and audit hook behavior.
 
 **Profile notes:**
 
-- `local`: create the cluster with a dedicated kubeconfig, for example
-  `kind create cluster --name agentic --kubeconfig /tmp/agentic.kubeconfig`,
-  then set `EXPECTED_CONTEXT=kind-agentic`.
+- `local`: requires kind v0.33.0. Create the cluster from the pinned
+  definition with a dedicated kubeconfig:
+  `kind create cluster --config platform/profiles/local/kind-config.yaml
+  --kubeconfig ~/.kube/agentic.kubeconfig`, then set
+  `EXPECTED_CONTEXT=kind-agentic`. Never rely on kind's default node image;
+  it changes with each kind release (v0.29.0 defaulted to 1.33, below the
+  floor).
 - `eks`: use a lab-specific kubeconfig and a context substring that names the
   lab cluster.
 
 **Run:**
 
 ```bash
-KUBECONFIG_FILE=/tmp/agentic.kubeconfig EXPECTED_CONTEXT=kind-agentic \
+KUBECONFIG_FILE=~/.kube/agentic.kubeconfig EXPECTED_CONTEXT=kind-agentic \
   uv run --group test pytest tests/static tests/phase_0 -q
-KUBECONFIG_FILE=/tmp/agentic.kubeconfig \
+KUBECONFIG_FILE=~/.kube/agentic.kubeconfig \
   uv run --group test python scripts/record_evidence.py --phase 0 --gate-result passed
 ```
 
